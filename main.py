@@ -29,7 +29,7 @@ def parseFile():
             print("object_list")
             print(object_list)
 
-            data = (subject_list, object_list)
+            data = subject_list + object_list
             populateSpreadsheet(data)
 
 
@@ -89,13 +89,7 @@ def populateSpreadsheet(my_data):
     column = 0
 
     print(my_data)
-    for subj in my_data:
-        for value in subj:
-            worksheet.write(row, column, value)
-            # column += 1
-        # column = 0
-        # row += 1
-
+    worksheet.write(row, column,','.join(my_data))
     workbook.close()
 
 
