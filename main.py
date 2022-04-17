@@ -36,14 +36,11 @@ def parseFile():
 def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list):
     # What to do for subject, subject can be a NamedNode, BlankNode or Triple
     my_value_subject = my_value.subject
-    if isinstance(my_value_subject, NamedNode):
-        my_value_subject = my_value.subject.value
-        my_subject_list.append(my_value_subject)
-    elif isinstance(my_value_subject, BlankNode):
-        my_value_subject = my_value.subject.value
-        my_subject_list.append(my_value_subject)
-    elif isinstance(my_value_subject, Triple):
+    if isinstance(my_value_subject, Triple):
         retrieveValues(my_value_subject, my_subject_list, my_predicate_list, my_object_list)
+    else:
+        my_value_subject = my_value.subject.value
+        my_subject_list.append(my_value_subject)
 
     # What to do for predicate, predicate can only be a NamedNode
     my_value_predicate = my_value.predicate.value
@@ -51,17 +48,15 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list)
 
     # What to do for object, object can be a NamedNode,  BlankNode,  Triple or literal
     my_value_object = my_value.object
-    if isinstance(my_value_object, NamedNode):
-        my_value_object = my_value_object.value
-        my_object_list.append(my_value_object)
-    elif isinstance(my_value_object, BlankNode):
-        my_value_object = my_value_object.value
-        my_object_list.append(my_value_object)
+    if isinstance(my_value_object, Triple):
+        retrieveValues(my_value_object, my_subject_list, my_predicate_list, my_object_list)
     elif isinstance(my_value_object, Literal):
         my_value_object = my_value_object.value
         my_object_list.append(my_value_object)
-    elif isinstance(my_value_object, Triple):
-        retrieveValues(my_value_object, my_subject_list, my_predicate_list, my_object_list)
+    else:
+        my_value_object = my_value_object.value
+        my_object_list.append(my_value_object)
+
 
 
 def populateSpreadsheet(my_data):
