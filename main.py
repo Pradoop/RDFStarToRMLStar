@@ -40,7 +40,13 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list)
         retrieveValues(my_value_subject, my_subject_list, my_predicate_list, my_object_list)
     else:
         my_value_subject = my_value.subject.value
-        my_subject_list.append(my_value_subject)
+        # check empty
+        if not my_subject_list:
+            my_subject_list.append(my_value_subject)
+        # check duplicates
+        for item in my_subject_list:
+            if item != my_value_subject:
+                my_subject_list.append(my_value_subject)
 
     # What to do for predicate, predicate can only be a NamedNode
     my_value_predicate = my_value.predicate.value
@@ -51,28 +57,44 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list)
     if isinstance(my_value_object, Triple):
         retrieveValues(my_value_object, my_subject_list, my_predicate_list, my_object_list)
     elif isinstance(my_value_object, Literal):
-        my_value_object = my_value_object.value
-        my_object_list.append(my_value_object)
+        if isinstance(my_value_object.datatype, NamedNode):
+            # TODO: the line below gives errors when the literal is a .datatype. For .value it works just fine
+            my_value_object = my_value_object.value
+            # check empty
+            if not my_object_list:
+                my_object_list.append(my_value_object)
+            # check duplicates
+            for item in my_object_list:
+                if item != my_value_object:
+                    my_object_list.append(my_value_object)
+            # print(my_value_object)
+        # else:
+        # my_value_object = my_value_object.value
     else:
         my_value_object = my_value_object.value
-        my_object_list.append(my_value_object)
-
+        # check empty
+        if not my_object_list:
+            my_object_list.append(my_value_object)
+        #check duplicates
+        for item in my_object_list:
+            if item != my_value_object:
+                my_object_list.append(my_value_object)
 
 
 def populateSpreadsheet(my_data):
     workbook = xlsxwriter.Workbook('reverseEngineering.xlsx')
     worksheet = workbook.add_worksheet()
 
-    row = 0
+    row = 1
     column = 0
 
     print(my_data)
     for subj in my_data:
         for value in subj:
             worksheet.write(row, column, value)
-            column += 1
-        column = 0
-        row += 1
+            # column += 1
+        # column = 0
+        # row += 1
 
     workbook.close()
 
