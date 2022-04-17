@@ -13,10 +13,9 @@ def parseFile():
     object_list = list()
 
     for filename in os.listdir(directory):
-
         file = os.path.join(directory, filename)
         if os.path.isfile(file) and file.endswith("nt"):
-            result = list(parse(file, "application/n-triples", base_iri="http://example/p"))
+            result = list(parse(file, "application/n-triples"))
             print(result)
             for triple in result:
                 print(triple)
@@ -66,16 +65,14 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list)
             # check duplicates
             for item in my_object_list:
                 if item != my_value_object:
+                    print("here")
                     my_object_list.append(my_value_object)
-            # print(my_value_object)
-        # else:
-        # my_value_object = my_value_object.value
     else:
         my_value_object = my_value_object.value
         # check empty
         if not my_object_list:
             my_object_list.append(my_value_object)
-        #check duplicates
+        # check duplicates
         for item in my_object_list:
             if item != my_value_object:
                 my_object_list.append(my_value_object)
@@ -88,8 +85,9 @@ def populateSpreadsheet(my_data):
     row = 1
     column = 0
 
+    print("my_data")
     print(my_data)
-    worksheet.write(row, column,','.join(my_data))
+    worksheet.write(row, column, ','.join(my_data))
     workbook.close()
 
 
