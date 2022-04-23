@@ -91,7 +91,7 @@ def populateSpreadsheet(my_data):
     print("my_header")
     print(my_header)
 
-    f = open(os.getcwd() + "\\reverseEngineering.csv", 'w')
+    f = open(os.getcwd() + "\\reverseEngineering.csv", 'w', newline='')
     writer = csv.writer(f)
     writer.writerow(my_header)
     writer.writerow(my_data)
