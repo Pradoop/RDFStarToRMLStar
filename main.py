@@ -1,5 +1,5 @@
 from pyoxigraph import *
-import xlsxwriter
+import csv
 import os
 
 
@@ -14,22 +14,28 @@ def parseFile():
 
     for filename in os.listdir(directory):
         file = os.path.join(directory, filename)
-        if os.path.isfile(file) and file.endswith("nt"):
+        if os.path.isfile(file) and file.endswith(".ttl"):
+            result = list(parse(file, "text/turtle"))
+        elif os.path.isfile(file) and file.endswith(".nt"):
             result = list(parse(file, "application/n-triples"))
-            print(result)
-            for triple in result:
-                print(triple)
-                retrieveValues(triple, subject_list, predicate_list, object_list)
+        else:
+            print("Something went wrong, please check the directory and make sure that there are no other files in "
+                  "the folder besides .ttl and .nt files")
+            return
+        print(result)
+        for triple in result:
+            print(triple)
+            retrieveValues(triple, subject_list, predicate_list, object_list)
 
-            print("subject_list")
-            print(subject_list)
-            print("predicate_list")
-            print(predicate_list)
-            print("object_list")
-            print(object_list)
+        print("subject_list")
+        print(subject_list)
+        print("predicate_list")
+        print(predicate_list)
+        print("object_list")
+        print(object_list)
 
-            data = subject_list + object_list
-            populateSpreadsheet(data)
+        data = subject_list + object_list
+        populateSpreadsheet(data)
 
 
 def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list):
@@ -56,7 +62,6 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list)
         retrieveValues(my_value_object, my_subject_list, my_predicate_list, my_object_list)
     elif isinstance(my_value_object, Literal):
         if isinstance(my_value_object.datatype, NamedNode):
-            # TODO: the line below gives errors when the literal is a .datatype. For .value it works just fine
             my_value_object = my_value_object.value
             # check empty
             if not my_object_list:
@@ -75,16 +80,22 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list)
 
 
 def populateSpreadsheet(my_data):
-    workbook = xlsxwriter.Workbook('reverseEngineering.xlsx')
-    worksheet = workbook.add_worksheet()
+    my_header = []
+    print("my_header")
+    print(my_header)
 
-    row = 1
-    column = 0
+    for i in my_data:
+        index = my_data.index(i) + 1
+        my_header.append("c" + str(index))
 
-    print("my_data")
-    print(my_data)
-    worksheet.write(row, column, ','.join(my_data))
-    workbook.close()
+    print("my_header")
+    print(my_header)
+
+    f = open(os.getcwd() + "\\reverseEngineering.csv", 'w')
+    writer = csv.writer(f)
+    writer.writerow(my_header)
+    writer.writerow(my_data)
+    f.close()
 
 
 if __name__ == '__main__':
