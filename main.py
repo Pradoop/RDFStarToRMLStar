@@ -12,9 +12,8 @@ def askFile():
 
 
 def retrieveTripleData(my_directory):
-    sublist_number = 1
-
-
+    parent_id = 0
+    list_id = 0
     # Setup lists for storing in excel
     subject_list = list()
     predicate_list = list()
@@ -22,7 +21,6 @@ def retrieveTripleData(my_directory):
     my_list = list()
 
     for filename in os.listdir(my_directory):
-        counter = 0
         file = os.path.join(my_directory, filename)
         if os.path.isfile(file) and file.endswith(".ttl"):
             result = list(parse(file, "text/turtle"))
@@ -33,7 +31,8 @@ def retrieveTripleData(my_directory):
                   "the folder besides .ttl and .nt files")
             return
         for triple in result:
-            retrieveValues(triple, subject_list, predicate_list, object_list, my_list)
+            list_id += 1
+            retrieveValues(triple, subject_list, predicate_list, object_list, my_list, parent_id, list_id)
 
         #print("subject_list")
         #print(subject_list)
@@ -42,20 +41,21 @@ def retrieveTripleData(my_directory):
         #print("object_list")
         #print(object_list)
 
-
         my_list = [x for x in my_list if x != []]
-        #my_data = subject_list + object_list
+
         return my_list
 
 
-def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list, my_triple_list):
+def retrieveValues(my_triple, my_subject_list, my_predicate_list, my_object_list, my_triple_list, my_parent_id, my_list_id):
     # What to do for subject, subject can be a NamedNode, BlankNode or Triple
     new_list = list()
-    my_value_subject = my_value.subject
+    my_value_subject = my_triple.subject
     if isinstance(my_value_subject, Triple):
-        retrieveValues(my_value_subject, my_subject_list, my_predicate_list, my_object_list, my_triple_list)
+        my_parent_id += 1
+        my_list_id += 1
+        retrieveValues(my_value_subject, my_subject_list, my_predicate_list, my_object_list, my_triple_list, my_parent_id, my_list_id)
     else:
-        my_value_subject = my_value.subject.value
+        my_value_subject = my_triple.subject.value
         # check empty
         if not my_subject_list:
             my_subject_list.append(my_value_subject)
@@ -66,7 +66,7 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list,
             new_list.append(my_value_subject)
 
     # What to do for predicate, predicate can only be a NamedNode
-    my_value_predicate = my_value.predicate.value
+    my_value_predicate = my_triple.predicate.value
     if not my_predicate_list:
         my_predicate_list.append(my_value_predicate)
     # check duplicates
@@ -74,9 +74,11 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list,
         my_predicate_list.append(my_value_predicate)
 
     # What to do for object, object can be a NamedNode,  BlankNode,  Triple or literal
-    my_value_object = my_value.object
+    my_value_object = my_triple.object
     if isinstance(my_value_object, Triple):
-        retrieveValues(my_value_object, my_subject_list, my_predicate_list, my_object_list, my_triple_list)
+        my_parent_id += 1
+        my_list_id += 1
+        retrieveValues(my_value_object, my_subject_list, my_predicate_list, my_object_list, my_triple_list, my_parent_id, my_list_id)
     elif isinstance(my_value_object, Literal):
         if isinstance(my_value_object.datatype, NamedNode):
             my_value_object = my_value_object.value
@@ -99,7 +101,10 @@ def retrieveValues(my_value, my_subject_list, my_predicate_list, my_object_list,
             my_object_list.append(my_value_object)
             new_list.append(my_value_object)
 
-    my_triple_list.append(new_list)
+    new_list.append(my_list_id)
+    new_list.append(my_parent_id)
+    if len(new_list) > 2:
+        my_triple_list.append(new_list)
 
 
 def populateSpreadsheet(my_data):
@@ -119,9 +124,7 @@ def populateSpreadsheet(my_data):
         writer.writerow(my_header)
         writer.writerow(sublist)
 
-    #writer.writerow(my_data)
     f.close()
-
     return output
 
 
