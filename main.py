@@ -12,7 +12,6 @@ def askFile():
 
 
 def retrieveTripleData(my_directory):
-    parent_id = 0
     list_id = 0
     # Setup lists for storing in excel
     subject_list = list()
@@ -31,19 +30,13 @@ def retrieveTripleData(my_directory):
                   "the folder besides .ttl and .nt files")
             return
         for triple in result:
+            parent_id = 0
             list_id += 1
             retrieveValues(triple, subject_list, predicate_list, object_list, my_list, parent_id, list_id)
 
-        #print("subject_list")
-        #print(subject_list)
-        #print("predicate_list")
-        #print(predicate_list)
-        #print("object_list")
-        #print(object_list)
-
         my_list = [x for x in my_list if x != []]
-
-        return my_list
+        final_list = subject_list + object_list
+        return final_list
 
 
 def retrieveValues(my_triple, my_subject_list, my_predicate_list, my_object_list, my_triple_list, my_parent_id, my_list_id):
@@ -51,8 +44,7 @@ def retrieveValues(my_triple, my_subject_list, my_predicate_list, my_object_list
     new_list = list()
     my_value_subject = my_triple.subject
     if isinstance(my_value_subject, Triple):
-        my_parent_id += 1
-        my_list_id += 1
+        my_parent_id = my_list_id - 1
         retrieveValues(my_value_subject, my_subject_list, my_predicate_list, my_object_list, my_triple_list, my_parent_id, my_list_id)
     else:
         my_value_subject = my_triple.subject.value
@@ -76,8 +68,7 @@ def retrieveValues(my_triple, my_subject_list, my_predicate_list, my_object_list
     # What to do for object, object can be a NamedNode,  BlankNode,  Triple or literal
     my_value_object = my_triple.object
     if isinstance(my_value_object, Triple):
-        my_parent_id += 1
-        my_list_id += 1
+        my_parent_id = my_list_id - 1
         retrieveValues(my_value_object, my_subject_list, my_predicate_list, my_object_list, my_triple_list, my_parent_id, my_list_id)
     elif isinstance(my_value_object, Literal):
         if isinstance(my_value_object.datatype, NamedNode):
@@ -108,21 +99,27 @@ def retrieveValues(my_triple, my_subject_list, my_predicate_list, my_object_list
 
 
 def populateSpreadsheet(my_data):
-    print("my_data:")
-    print(my_data)
     output = "reverseEngineering.csv"
+    my_header = []
 
     f = open(os.getcwd() + "\\" + output, 'w', newline='')
     writer = csv.writer(f)
 
-    for sublist in my_data:
-        sublist_index = my_data.index(sublist) + 1
-        my_header = []
-        for element in sublist:
-            element_index = sublist.index(element) + 1
-            my_header.append("c" + str(sublist_index) + "-" + str(element_index))
-        writer.writerow(my_header)
-        writer.writerow(sublist)
+    for elements in my_data:
+        element_index = my_data.index(elements) + 1
+        my_header.append("c" + str(element_index))
+
+    writer.writerow(my_header)
+    writer.writerow(my_data)
+
+    #for sublist in my_data:
+    #    sublist_index = my_data.index(sublist) + 1
+    #    my_header = []
+    #    for element in sublist:
+    #        element_index = sublist.index(element) + 1
+    #        my_header.append("c" + str(sublist_index) + "-" + str(element_index))
+    #    writer.writerow(my_header)
+    #    writer.writerow(sublist)
 
     f.close()
     return output
@@ -130,6 +127,7 @@ def populateSpreadsheet(my_data):
 
 def createMappings(my_directory, my_output_file):
     g = rdflib.Graph()
+    filename, file_extension = os.path.splitext(os.getcwd() + "\\" + my_output_file)
 
     rr = rdflib.Namespace('http://www.w3.org/ns/r2rml#')
     rml = rdflib.Namespace('http://semweb.mmlab.be/ns/rml#')
@@ -148,46 +146,34 @@ def createMappings(my_directory, my_output_file):
     g.namespace_manager.bind('ex', ex)
     g.namespace_manager.bind('', blank)
 
-    df = pd.read_csv(os.getcwd() + "\\" + my_output_file, sep=",")
-    filename, file_extension = os.path.splitext(os.getcwd() + "\\" + my_output_file)
-    for index, row in df.iterrows():
-        print((df.to_string(index=False)))
-    file_ext = Literal(file_extension.upper())
+    with open(os.getcwd() + "\\" + my_output_file, newline='') as f:
+        reader = csv.reader(f)
+        count = 0
+        for row in reader:
+            count += 1
+            print(count)
+            line_header = row
+            line_data = next(reader)
+            print(line_header)
+            print(line_data)
 
-    # triplesMap
-    g.add((URIRef(blank.TriplesMap), RDF.type, rr.TriplesMap))
-    # LogicalSource
-    g.add((URIRef(blank.TriplesMap), rml.logicalSource, child))  # creates array for logicalSource
-    g.add((child, rml.referenceFormulation, file_ext))  # creates content of array TODO: find out how to get "ql:file extension" in here
-    g.add((child, rml.source, Literal(my_output_file)))  # creates content of array
+            # triplesMap
+            g.add((URIRef(blank.TriplesMap), RDF.type, rr.TriplesMap))
+            # LogicalSource
+            g.add((URIRef(blank.TriplesMap), rml.logicalSource, child))  # creates array for logicalSource
+            g.add((child, rml.referenceFormulation, Literal(file_extension.upper())))  # creates content of array TODO: find out how to get "ql:file extension" in here
+            g.add((child, rml.source, Literal(my_output_file)))  # creates content of array
 
-    # subjectMap
-    g.add((URIRef(blank.TriplesMap), rml.subjectMap, child2))  # creates array for logicalSource
-    g.add((child2, rml.reference, Literal("c1")))  # creates content of array
-    g.add((child2, rml.termType, rr.BlankNode))  # creates content of array
+            # subjectMap
+            g.add((URIRef(blank.TriplesMap), rml.subjectMap, child2))  # creates array for logicalSource
+            g.add((child2, rml.reference, Literal(line_header[0])))  # creates content of array
+            g.add((child2, rml.termType, rr.BlankNode))  # creates content of array
 
-    # predicateObjectMap
-    g.add((URIRef(blank.TriplesMap), rr.predicateObjectMap, child3))  # creates array for logicalSource
-    g.add((child3, rr.predicate, ex.p))  # creates content of array
-    g.add((child3, rml.objectMap, child4))  # creates content of array
-    g.add((child4, rr.template, Literal("http:example/{c2}")))  # creates content of array
-
-    # for filename in os.listdir(my_directory):
-    #    file = os.path.join(my_directory, filename)
-    #    if os.path.isfile(file) and file.endswith(".ttl"):
-    #        result = list(parse(file, "text/turtle"))
-    #    elif os.path.isfile(file) and file.endswith(".nt"):
-    #        result = list(parse(file, "application/n-triples"))
-    #    else:
-    #        print("Something went wrong, please check the directory and make sure that there are no other files in "
-    #              "the folder besides .ttl and .nt files")
-    #        return
-    #    print(result)
-
-    # for index, row in df.iterrows():
-    #    g.add((URIRef(ex + row['c1']), RDF.type, Literal(row['c1'], datatype=XSD.string)))
-    #    g.add((URIRef(ex + row['c2']), RDF.type, Literal(row['c2'], datatype=XSD.string)))
-    #    g.add((URIRef(ex + row['c3']), RDF.type, Literal(row['c3'], datatype=XSD.string)))
+            # predicateObjectMap
+            g.add((URIRef(blank.TriplesMap), rr.predicateObjectMap, child3))  # creates array for logicalSource
+            g.add((child3, rr.predicate, ex.p))  # creates content of array
+            g.add((child3, rml.objectMap, child4))  # creates content of array
+            g.add((child4, rr.template, Literal(ex + line_header[0])))  # creates content of array
 
     g.serialize(os.getcwd() + '\\mycsv2rdf.ttl', format='turtle')
 
@@ -196,4 +182,4 @@ if __name__ == '__main__':
     directory = askFile()
     data = retrieveTripleData(directory)
     output_file = populateSpreadsheet(data)
-    #createMappings(dir, output_file)
+    #createMappings(directory, output_file)
